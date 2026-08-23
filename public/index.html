@@ -145,6 +145,7 @@
             const val = usernameInput.value.trim()
             if (val === '') return
             username = val
+            joinBtn.disabled = true
             usernameScreen.classList.add('hidden')
             app.classList.remove('hidden')
             connectWebSocket()
@@ -155,8 +156,9 @@
         })
 
         function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) return
             ws = new WebSocket('ws://localhost:3000')
-
+            
             ws.addEventListener('open', function() {
                 appendMessage('system', 'connected to server')
             })
