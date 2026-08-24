@@ -48,6 +48,12 @@
             margin-right: 8px;
         }
 
+        .time {
+        color: #555;
+        font-size: 11px;
+        margin-left: 8px;
+        }
+
         #bottom {
             display: flex;
             border-top: 1px solid #333;
@@ -164,21 +170,29 @@
             })
 
             ws.addEventListener('message', function(event) {
-                const data = JSON.parse(event.data)
-                appendMessage(data.username, data.text)
-            })
+            const data = JSON.parse(event.data)
+
+            if (data.type === 'history') {
+                data.messages.forEach(function(msg) {
+                    appendMessage(msg.username, msg.text, new Date(msg.created_at))
+                })
+            } else if (data.type === 'message') {
+                appendMessage(data.username, data.text, new Date())
+            }
+        })
 
             ws.addEventListener('close', function() {
                 appendMessage('system', 'disconnected from server')
             })
         }
 
-        function appendMessage(user, text) {
-            const div = document.createElement('div')
-            div.classList.add('message')
-            div.innerHTML = '<span class="username">' + user + '</span>' + text
-            messagesDiv.appendChild(div)
-            messagesDiv.scrollTop = messagesDiv.scrollHeight
+        function appendMessage(user, text, time) {
+        const div = document.createElement('div')
+        div.classList.add('message')
+        const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        div.innerHTML = '<span class="username">' + user + '</span>' + text + '<span class="time"> ' + timeStr + '</span>'
+        messagesDiv.appendChild(div)
+        messagesDiv.scrollTop = messagesDiv.scrollHeight
         }
 
         sendBtn.addEventListener('click', sendMessage)

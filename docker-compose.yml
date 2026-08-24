@@ -1,0 +1,21 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgres://lloyd:password@db:5432/talkapp
+
+  db:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=lloyd
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=talkapp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
