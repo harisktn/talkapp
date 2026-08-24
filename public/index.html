@@ -22,6 +22,102 @@
             justify-content: center;
         }
 
+        #auth-panel {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        #auth-toggle {
+            background: #2a2a2a;
+            border: 1px solid #333;
+            padding: 8px 16px;
+            color: #4fc3f7;
+            font-family: monospace;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        #auth-toggle:hover {
+            background: #333;
+        }
+
+        #auth-box {
+            background: #2a2a2a;
+            border: 1px solid #333;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 220px;
+        }
+
+        #auth-box input {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 8px;
+            color: #e0e0e0;
+            font-family: monospace;
+            font-size: 13px;
+            outline: none;
+        }
+
+        #auth-box button {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 8px;
+            color: #4fc3f7;
+            font-family: monospace;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        #auth-box button:hover {
+            background: #333;
+        }
+
+        #auth-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        #auth-tabs button {
+            flex: 1;
+        }
+
+        #auth-tabs button.active {
+            color: #e0e0e0;
+            border-color: #4fc3f7;
+        }
+
+        #auth-error {
+            color: #ef5350;
+            font-size: 12px;
+            display: none;
+        }
+
+        #user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        #logout-btn {
+            background: none;
+            border: none;
+            color: #4fc3f7;
+            font-family: monospace;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 0;
+        }
+
         #app {
             width: 600px;
             height: 80vh;
@@ -49,9 +145,9 @@
         }
 
         .time {
-        color: #555;
-        font-size: 11px;
-        margin-left: 8px;
+            color: #555;
+            font-size: 11px;
+            margin-left: 8px;
         }
 
         #bottom {
@@ -84,35 +180,12 @@
             background: #333;
         }
 
-        #username-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-        }
-
-        #username-input {
-            background: #2a2a2a;
-            border: 1px solid #333;
-            padding: 10px 16px;
-            color: #e0e0e0;
-            font-family: monospace;
-            font-size: 14px;
-            outline: none;
-            width: 250px;
-        }
-
-        #join-btn {
-            background: #2a2a2a;
-            border: 1px solid #333;
-            padding: 10px 24px;
-            color: #4fc3f7;
-            font-family: monospace;
-            cursor: pointer;
-        }
-
-        #join-btn:hover {
-            background: #333;
+        #not-logged-in {
+            color: #555;
+            font-size: 13px;
+            padding: 12px 16px;
+            border-top: 1px solid #333;
+            text-align: center;
         }
 
         .hidden {
@@ -121,93 +194,186 @@
     </style>
 </head>
 <body>
-    <div id="username-screen">
-        <p>enter a username to join</p>
-        <input id="username-input" type="text" placeholder="username" />
-        <button id="join-btn">join</button>
+
+    <div id="auth-panel">
+        <div id="user-info" class="hidden">
+            <span id="logged-in-name"></span>
+            <button id="logout-btn">logout</button>
+        </div>
+
+        <div id="guest-ui">
+            <button id="auth-toggle">login / register</button>
+            <div id="auth-box" class="hidden">
+                <div id="auth-tabs">
+                    <button id="tab-login" class="active">login</button>
+                    <button id="tab-register">register</button>
+                </div>
+                <input id="auth-username" type="text" placeholder="username" />
+                <input id="auth-password" type="password" placeholder="password" />
+                <button id="auth-submit">login</button>
+                <span id="auth-error"></span>
+            </div>
+        </div>
     </div>
 
-    <div id="app" class="hidden">
+    <div id="app">
         <div id="messages"></div>
         <div id="bottom">
             <input id="input" type="text" placeholder="type a message..." />
             <button id="send">send</button>
         </div>
+        <div id="not-logged-in">login to send messages</div>
     </div>
 
     <script>
-        let username = ''
-        let ws
+        let username = null
+        let ws = null
+        let currentTab = 'login'
 
-        const usernameScreen = document.getElementById('username-screen')
-        const app = document.getElementById('app')
         const messagesDiv = document.getElementById('messages')
         const input = document.getElementById('input')
         const sendBtn = document.getElementById('send')
-        const usernameInput = document.getElementById('username-input')
-        const joinBtn = document.getElementById('join-btn')
+        const authToggle = document.getElementById('auth-toggle')
+        const authBox = document.getElementById('auth-box')
+        const authUsername = document.getElementById('auth-username')
+        const authPassword = document.getElementById('auth-password')
+        const authSubmit = document.getElementById('auth-submit')
+        const authError = document.getElementById('auth-error')
+        const userInfo = document.getElementById('user-info')
+        const guestUi = document.getElementById('guest-ui')
+        const loggedInName = document.getElementById('logged-in-name')
+        const logoutBtn = document.getElementById('logout-btn')
+        const tabLogin = document.getElementById('tab-login')
+        const tabRegister = document.getElementById('tab-register')
+        const notLoggedIn = document.getElementById('not-logged-in')
+        const bottomInput = document.getElementById('bottom')
 
-        joinBtn.addEventListener('click', function() {
-            const val = usernameInput.value.trim()
-            if (val === '') return
-            username = val
-            joinBtn.disabled = true
-            usernameScreen.classList.add('hidden')
-            app.classList.remove('hidden')
+        authToggle.addEventListener('click', function() {
+            authBox.classList.toggle('hidden')
+        })
+
+        tabLogin.addEventListener('click', function() {
+            currentTab = 'login'
+            tabLogin.classList.add('active')
+            tabRegister.classList.remove('active')
+            authSubmit.textContent = 'login'
+        })
+
+        tabRegister.addEventListener('click', function() {
+            currentTab = 'register'
+            tabRegister.classList.add('active')
+            tabLogin.classList.remove('active')
+            authSubmit.textContent = 'register'
+        })
+
+        authSubmit.addEventListener('click', async function() {
+            const u = authUsername.value.trim()
+            const p = authPassword.value.trim()
+            if (!u || !p) return
+
+            const url = currentTab === 'login' ? '/login' : '/register'
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                })
+                const data = await res.json()
+                if (!res.ok) {
+                    authError.textContent = data.error
+                    authError.style.display = 'block'
+                    return
+                }
+                onLoggedIn(data.username)
+            } catch (err) {
+                authError.textContent = 'something went wrong'
+                authError.style.display = 'block'
+            }
+        })
+
+        logoutBtn.addEventListener('click', async function() {
+            await fetch('/logout', { method: 'POST' })
+            username = null
+            if (ws) ws.close()
+            ws = null
+            userInfo.classList.add('hidden')
+            guestUi.classList.remove('hidden')
+            bottomInput.classList.add('hidden')
+            notLoggedIn.classList.remove('hidden')
+        })
+
+        function onLoggedIn(u) {
+            username = u
+            loggedInName.textContent = u
+            userInfo.classList.remove('hidden')
+            guestUi.classList.add('hidden')
+            authBox.classList.add('hidden')
+            authError.style.display = 'none'
+            authUsername.value = ''
+            authPassword.value = ''
+            bottomInput.classList.remove('hidden')
+            notLoggedIn.classList.add('hidden')
             connectWebSocket()
-        })
+        }
 
-        usernameInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') joinBtn.click()
-        })
+        async function checkSession() {
+            try {
+                const res = await fetch('/me')
+                if (res.ok) {
+                    const data = await res.json()
+                    onLoggedIn(data.username)
+                }
+            } catch (err) {}
+        }
 
         function connectWebSocket() {
             if (ws && ws.readyState === WebSocket.OPEN) return
             ws = new WebSocket('ws://localhost:3000')
-            
+
             ws.addEventListener('open', function() {
-                appendMessage('system', 'connected to server')
+                appendMessage('system', 'connected')
             })
 
             ws.addEventListener('message', function(event) {
-            const data = JSON.parse(event.data)
-
-            if (data.type === 'history') {
-                data.messages.forEach(function(msg) {
-                    appendMessage(msg.username, msg.text, new Date(msg.created_at))
-                })
-            } else if (data.type === 'message') {
-                appendMessage(data.username, data.text, new Date())
-            }
-        })
+                const data = JSON.parse(event.data)
+                if (data.type === 'history') {
+                    data.messages.forEach(function(msg) {
+                        appendMessage(msg.username, msg.text, new Date(msg.created_at))
+                    })
+                } else if (data.type === 'message') {
+                    appendMessage(data.username, data.text, new Date())
+                }
+            })
 
             ws.addEventListener('close', function() {
-                appendMessage('system', 'disconnected from server')
+                appendMessage('system', 'disconnected')
             })
         }
 
         function appendMessage(user, text, time) {
-        const div = document.createElement('div')
-        div.classList.add('message')
-        const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        div.innerHTML = '<span class="username">' + user + '</span>' + text + '<span class="time"> ' + timeStr + '</span>'
-        messagesDiv.appendChild(div)
-        messagesDiv.scrollTop = messagesDiv.scrollHeight
+            const div = document.createElement('div')
+            div.classList.add('message')
+            const timeStr = time ? time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
+            div.innerHTML = '<span class="username">' + user + '</span>' + text + '<span class="time">' + timeStr + '</span>'
+            messagesDiv.appendChild(div)
+            messagesDiv.scrollTop = messagesDiv.scrollHeight
         }
 
         sendBtn.addEventListener('click', sendMessage)
-
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') sendMessage()
         })
 
         function sendMessage() {
             const text = input.value.trim()
-            if (text === '' || !ws) return
-            const payload = JSON.stringify({ username: username, text: text })
-            ws.send(payload)
+            if (!text || !ws || !username) return
+            ws.send(JSON.stringify({ username: username, text: text }))
             input.value = ''
         }
+
+        bottomInput.classList.add('hidden')
+        checkSession()
     </script>
 </body>
 </html>
